@@ -7,11 +7,11 @@
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 深度定制背景和字体 */
+        /* CSS styles omitted for brevity */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0F172A; /* 深海蓝色/极深色背景 */
-            color: #E2E8F0; /* 浅灰色文本 */
+            background-color: #0F172A;
+            color: #E2E8F0;
             min-height: 100vh;
         }
         .hero-background {
@@ -49,9 +49,9 @@
             
             <!-- 状态和作品管理按钮 -->
             <nav class="flex items-center space-x-6">
-                <!-- 状态显示 (现在是云端同步状态) -->
-                <span id="auth-status" class="text-sm px-3 py-1 rounded-full bg-yellow-600 text-white font-medium">
-                    正在连接云端...
+                <!-- 状态显示 -->
+                <span id="auth-status" class="text-sm px-3 py-1 rounded-full bg-blue-600 text-white font-medium">
+                    本地存储 (稳定)
                 </span>
                 <button id="open-modal-btn" 
                         class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-lg">
@@ -79,12 +79,12 @@
         <!-- 作品集/图库区 (Portfolio Section) -->
         <section id="portfolio" class="py-20 md:py-32 container mx-auto px-4">
             <h2 class="text-4xl md:text-5xl font-bold text-center mb-4 text-indigo-400">精选作品</h2>
-            <p class="text-center text-gray-400 mb-12">作品实时从云端数据库加载，支持多设备同步。</p>
+            <p class="text-center text-gray-400 mb-12">点击作品下方的“编辑”或“删除”按钮来管理你的作品集。</p>
             
             <!-- Dynamic Grid for Photos -->
             <div id="photos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
                 <div id="loading-message" class="col-span-full text-center p-10 text-2xl text-gray-500 animate-pulse">
-                    正在连接云端数据库...
+                    正在加载作品...
                 </div>
             </div>
         </section>
@@ -132,7 +132,7 @@
                 版权所有 © 2024 孙玉涵. All Rights Reserved.
             </p>
             <p class="text-sm" id="footer-user-id">
-                云端同步模式 (同步 ID: cometkismet)
+                注意：数据只存储在当前设备上，不能同步。
             </p>
         </div>
     </footer>
@@ -181,61 +181,15 @@
         </div>
     </div>
 
-    <!-- Firebase Imports and Dynamic Logic -->
+    <!-- PURE JAVASCRIPT LOCAL STORAGE LOGIC -->
     <script>
-        // --- Firebase CDN Imports ---
-        const FIREBASE_APP_CDN = "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        const FIREBASE_FIRESTORE_CDN = "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        function loadScript(src) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = false;
-            document.head.appendChild(script);
-        }
-
-        loadScript(FIREBASE_APP_CDN);
-        loadScript(FIREBASE_FIRESTORE_CDN);
-
-        // --- Manual Global Definitions (Mimicking imports) ---
-        // Note: These need a slight delay to ensure the CDNs load before they are defined.
-        
-        let firebaseReadyInterval = setInterval(function() {
-            if (typeof firebase !== 'undefined' && typeof firebase.firestore !== 'undefined') {
-                clearInterval(firebaseReadyInterval); // Stop checking
-                
-                // Define global functions after SDKs are confirmed loaded
-                const initializeApp = (config) => firebase.initializeApp(config);
-                const getFirestore = () => firebase.firestore.getFirestore(firebase.app());
-                const collection = (db, path) => firebase.firestore.collection(db, path);
-                const query = (colRef) => firebase.firestore.query(colRef);
-                const addDoc = (colRef, data) => firebase.firestore.addDoc(colRef, data);
-                const onSnapshot = (query, callback, errorCallback) => firebase.firestore.onSnapshot(query, callback, errorCallback);
-                const serverTimestamp = () => firebase.firestore.serverTimestamp();
-                const doc = (db, path, id) => firebase.firestore.doc(db, path, id);
-                const updateDoc = (docRef, data) => firebase.firestore.updateDoc(docRef, data);
-                const deleteDoc = (docRef) => firebase.firestore.deleteDoc(docRef);
-                const getDoc = (docRef) => firebase.firestore.getDoc(docRef);
-                const setDoc = (docRef, data) => firebase.firestore.setDoc(docRef, data);
-                const enableIndexedDbPersistence = (db) => firebase.firestore.enableIndexedDbPersistence(db);
-                const setLogLevel = (level) => firebase.firestore.setLogLevel(level);
-
-                // Start the application after definitions are complete
-                initializeFirebase();
-            }
-        }, 100); // Check every 100ms
-
-        // --- Core State ---
-        let db;
-        let isAuthReady = false; 
+        // --- Core State (No Firebase) ---
+        let photos = JSON.parse(localStorage.getItem('sunyuhan_photos')) || [];
+        let avatarUrl = localStorage.getItem('sunyuhan_avatar') || 'https://placehold.co/280x280/334155/E2E8F0?text=LOAD+AVATAR';
+        let isAuthReady = true; 
         let editingDocId = null; 
-        
-        // Use a unique ID based on the GitHub Pages URL for public data sync
-        const urlSegments = window.location.pathname.split('/').filter(Boolean);
-        const repoName = urlSegments.length >= 1 ? urlSegments[0] : 'default-repo';
-        const userId = window.location.hostname + '/' + repoName; // Unique ID based on cometkismet.github.io/sunyuhan-pics-site
-        const AVATAR_DOC_REF = `artifacts/public/users/${userId}/settings/profile`; 
-        
+
         // UI elements
         const photoModal = document.getElementById('photo-modal');
         const photoForm = document.getElementById('photo-form');
@@ -243,115 +197,204 @@
         const avatarForm = document.getElementById('avatar-form');
         const photosGrid = document.getElementById('photos-grid');
         const loadingMessage = document.getElementById('loading-message');
-        const authStatus = document.getElementById('auth-status');
         const avatarImage = document.getElementById('avatar-image');
         const openModalBtn = document.getElementById('open-modal-btn'); 
         const manageAvatarBtn = document.getElementById('manage-avatar-btn');
         const closePhotoModalBtn = document.getElementById('close-photo-modal');
         const closeAvatarModalBtn = document.getElementById('close-avatar-modal');
 
+        // --- UTILITY FUNCTIONS ---
 
-        // --- MODAL FUNCTIONS (Global Scope) ---
+        function savePhotos() {
+            localStorage.setItem('sunyuhan_photos', JSON.stringify(photos));
+        }
+
+        function saveAvatar(url) {
+            localStorage.setItem('sunyuhan_avatar', url);
+            avatarUrl = url;
+            loadAvatar(); 
+        }
+
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+
+        // --- UI LOADING ---
+
+        function loadAvatar() {
+            avatarImage.src = avatarUrl;
+            avatarImage.onerror = () => {
+                avatarImage.src = 'https://placehold.co/280x280/800000/ffffff?text=Image+Load+Error';
+            };
+        }
+
+        function loadPhotos() {
+            photos.sort((a, b) => b.createdAt - a.createdAt); 
+            photosGrid.innerHTML = '';
+            loadingMessage.style.display = 'none';
+
+            if (photos.length === 0) {
+                photosGrid.innerHTML = '<div class="col-span-full text-center p-10 text-xl text-gray-500">目前还没有作品，点击“添加新作品”开始管理！</div>';
+                return;
+            }
+
+            photos.forEach(photo => {
+                photosGrid.appendChild(createPhotoCard(photo));
+            });
+        }
+
+        function createPhotoCard(photo) {
+            const div = document.createElement('div');
+            div.className = 'photo-card rounded-xl shadow-xl overflow-hidden flex-grow';
+            
+            const imageUrl = photo.imageUrl || 'https://placehold.co/800x600/334155/E2E8F0?text=Image+Missing';
+
+            div.innerHTML = `
+                <!-- Image Area -->
+                <div class="h-64 overflow-hidden">
+                    <img src="${imageUrl}" 
+                         alt="${photo.title || 'Untitled Photo'}" 
+                         class="w-full h-full object-cover transition duration-500 ease-in-out hover:scale-[1.05]"
+                         onerror="this.onerror=null; this.src='https://placehold.co/800x600/800000/ffffff?text=Image+Error';">
+                </div>
+                
+                <!-- Text and Action Area -->
+                <div class="p-5 flex flex-col justify-between flex-grow">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-100 mb-1 truncate">${photo.title || '无标题'}</h3>
+                        <p class="text-sm text-gray-400 mb-3">${photo.description || '无描述'}</p>
+                    </div>
+                    
+                    <!-- Management Buttons (Using global onclick) -->
+                    <div class="flex justify-end pt-3 border-t border-slate-700/50 mt-auto">
+                        <button class="px-3 py-1 text-sm font-medium text-indigo-400 hover:text-indigo-300 rounded-lg hover:bg-slate-700 transition" 
+                                onclick="openEditModal('${photo.id}', event)">编辑</button>
+                        <button class="px-3 py-1 text-sm font-medium text-red-400 hover:text-red-300 rounded-lg hover:bg-slate-700 transition ml-3" 
+                                onclick="deletePhoto('${photo.id}', event)">删除</button>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+
+        // --- CRUD LOGIC ---
+
+        function handlePhotoFormSubmit(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+            
+            const photoData = { title, description, imageUrl };
+
+            if (editingDocId) {
+                const index = photos.findIndex(p => p.id === editingDocId);
+                if (index !== -1) {
+                    photos[index] = { ...photos[index], ...photoData };
+                }
+            } else {
+                photos.push({ ...photoData, id: generateUniqueId(), createdAt: Date.now() });
+            }
+
+            savePhotos();
+            loadPhotos();
+            closeModal(); 
+        }
+
+        function deletePhoto(id, event) {
+            event.stopPropagation();
+            if (!window.confirm("确定要删除这个作品吗？")) {
+                return;
+            }
+            
+            photos = photos.filter(photo => photo.id !== id);
+            savePhotos();
+            loadPhotos();
+        }
+        window.deletePhoto = deletePhoto;
+
+
+        function handleAvatarFormSubmit(e) {
+            e.preventDefault();
+            const url = document.getElementById('avatarUrl').value;
+            saveAvatar(url);
+            closeAvatarModal();
+        }
+
+
+        // --- MODAL & INTERACTION FUNCTIONS (Global Scope) ---
 
         function openModal() {
-            if (!isAuthReady) { console.warn("App not ready."); return; }
-            // ... (modal logic)
+            editingDocId = null; 
+            photoModal.style.display = 'flex';
+            photoForm.reset();
+            document.getElementById('modal-title').textContent = '添加新作品';
         };
         window.openModal = openModal;
 
         function openEditModal(id, event) {
-            // ... (modal logic)
+            event.stopPropagation();
+            editingDocId = id;
+            document.getElementById('modal-title').textContent = '编辑作品';
+
+            const photo = photos.find(p => p.id === id);
+            if (photo) {
+                document.getElementById('title').value = photo.title;
+                document.getElementById('description').value = photo.description;
+                document.getElementById('imageUrl').value = photo.imageUrl;
+                photoModal.style.display = 'flex';
+            }
         };
         window.openEditModal = openEditModal;
 
         function closeModal(event) {
-            // ... (modal logic)
+            if (!event || event.target === photoModal || event.target === closePhotoModalBtn) {
+                photoModal.style.display = 'none';
+                editingDocId = null; 
+            }
         };
         window.closeModal = closeModal;
 
         function openAvatarModal() {
-            // ... (modal logic)
+            avatarModal.style.display = 'flex';
+            document.getElementById('avatarUrl').value = avatarUrl;
         };
         window.openAvatarModal = openAvatarModal;
         
         function closeAvatarModal(event) {
-            // ... (modal logic)
+            if (!event || event.target === avatarModal || event.target === closeAvatarModalBtn) {
+                avatarModal.style.display = 'none';
+            }
         };
         window.closeAvatarModal = closeAvatarModal;
 
-        // --- CORE LOGIC ---
-        async function initializeFirebase() {
-            try {
-                // IMPORTANT: This public config is used to ensure connection on GitHub Pages.
-                // It is a placeholder structure, but Firestore allows access to public paths without Auth.
-                const firebaseConfig = {
-                    apiKey: "PUBLIC_API_KEY_PLACEHOLDER", 
-                    authDomain: "public-dev.firebaseapp.com",
-                    projectId: "public-dev-id",
-                    storageBucket: "public-dev-id.appspot.com",
-                    appId: "1:2345:web:publicdevapp"
-                };
 
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                
-                isAuthReady = true; 
-                authStatus.className = 'text-sm px-3 py-1 rounded-full bg-green-600 text-white font-medium';
-                authStatus.textContent = '云端同步 (就绪)';
+        // --- EVENT LISTENER SETUP (THE FINAL BINDING) ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Bind form submissions
+            photoForm.onsubmit = handlePhotoFormSubmit;
+            avatarForm.onsubmit = handleAvatarFormSubmit;
+            
+            // Primary Button Bindings (Assigning event handler functions directly)
+            openModalBtn.onclick = openModal;
+            manageAvatarBtn.onclick = openAvatarModal;
 
-                loadPhotos();
-                loadAvatar();
-                
-                setupListeners(); 
+            // Modal Close Buttons (Using direct assignment)
+            closePhotoModalBtn.onclick = closeModal;
+            closeAvatarModalBtn.onclick = closeAvatarModal;
 
-            } catch (error) {
-                authStatus.className = 'text-sm px-3 py-1 rounded-full bg-red-900 text-red-300 font-medium';
-                authStatus.textContent = '连接失败';
-                loadingMessage.textContent = `【初始化失败】请检查您的网络连接。`; 
-                console.error("Firebase Initialization Failed:", error);
-            }
-        }
-
-        // --- Avatar Data Logic ---
-        function loadAvatar() { /* ... */ }
-        async function handleAvatarFormSubmit(e) { /* ... */ }
-
-        // --- Photos Data Logic (CRUD Functions) ---
-        function getPhotosCollectionRef() {
-            const collectionPath = `artifacts/public/data/photos_${repoName}`; // Public path for synchronization
-            return collection(db, collectionPath);
-        }
-        function loadPhotos() { /* ... */ }
-        function createPhotoCard(doc) { /* ... */ }
-        async function handlePhotoFormSubmit(e) { /* ... */ }
-        const deletePhoto = async (id, event) => { /* ... */ };
-        window.deletePhoto = deletePhoto;
-
-
-        // --- EVENT LISTENER SETUP (Final Sync Binding) ---
-        function setupListeners() {
-            // Bind interaction after core logic is loaded
-            setTimeout(function() {
-                
-                photoForm.onsubmit = handlePhotoFormSubmit;
-                avatarForm.onsubmit = handleAvatarFormSubmit;
-                
-                openModalBtn.onclick = openModal;
-                manageAvatarBtn.onclick = openAvatarModal;
-
-                closePhotoModalBtn.onclick = closeModal;
-                closeAvatarModalBtn.onclick = closeAvatarModal;
-
-                photoModal.onclick = closeModal;
-                avatarModal.onclick = closeAvatarModal;
-                
-            }, 200); 
-
-        }
-
-        // --- START APPLICATION ---
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
+            // Modal Background Clicks
+            photoModal.onclick = closeModal;
+            avatarModal.onclick = closeAvatarModal;
+            
+            // Initial UI Load
+            loadAvatar();
+            loadPhotos();
+        });
     </script>
 </body>
 </html>
-
