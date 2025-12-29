@@ -4,58 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To You</title>
+    
+    <!-- 引入在线手写字体：Ma Shan Zheng (马善政书法体) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+
     <style>
-        /* 全局重置，保证纯白背景 */
+        /* 1. 基础设置 */
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            background-color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            overflow: hidden;
+            /* 备用字体：如果加载慢，先显示仿宋 */
+            font-family: "Ma Shan Zheng", "FangSong", cursive; 
         }
 
-        /* 居中容器 */
+        /* 2. 七彩花海背景 (保持不变) */
+        .flower-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffe4e1; 
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 0, 0, 0.6) 0%, transparent 20%),
+                radial-gradient(circle at 90% 10%, rgba(255, 165, 0, 0.6) 0%, transparent 20%),
+                radial-gradient(circle at 30% 80%, rgba(255, 255, 0, 0.6) 0%, transparent 25%),
+                radial-gradient(circle at 70% 80%, rgba(0, 128, 0, 0.5) 0%, transparent 25%),
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.5) 0%, transparent 30%),
+                radial-gradient(circle at 80% 40%, rgba(0, 0, 255, 0.5) 0%, transparent 25%),
+                radial-gradient(circle at 20% 40%, rgba(128, 0, 128, 0.6) 0%, transparent 25%);
+            filter: blur(30px) contrast(1.2);
+            z-index: -1;
+            animation: moveColors 20s infinite alternate linear;
+        }
+
+        @keyframes moveColors {
+            0% { transform: scale(1.1); }
+            100% { transform: scale(1.3); }
+        }
+
+        /* 3. 布局容器 */
         .container {
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 40px;
-            box-sizing: border-box;
+            padding: 20px;
         }
 
-        /* 文字内容样式 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 50px 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            text-align: center;
+        }
+
+        /* 4. 正文样式 (手写体) */
         .content {
-            font-size: 22px;         /* 字号够大，看着舒服 */
-            color: #333333;          /* 深灰黑色，不刺眼 */
-            line-height: 2;          /* 行间距宽松，有呼吸感 */
-            letter-spacing: 1px;     /* 字间距 */
-            font-weight: 500;        /* 字体适中 */
-            text-align: left;        /* 正文左对齐 */
+            font-family: "Ma Shan Zheng", cursive; /* 启用手写字体 */
+            font-size: 26px; /* 手写体稍微大一点更好看 */
+            color: #1a1a1a; 
+            line-height: 2.2;
+            letter-spacing: 2px;
+            text-align: left;
+            display: inline-block;
+            position: relative;
         }
 
-        /* 签名样式 */
-        .signature {
-            margin-top: 40px;        /* 与正文拉开距离 */
-            font-size: 18px;         /* 签名稍微小一点点 */
-            color: #666666;          /* 颜色稍微浅一点 */
-            text-align: right;       /* 右对齐 */
-            font-style: italic;      /* 稍微倾斜，更有手写感 */
+        .bracket {
+            color: #333;
+            font-weight: bold;
         }
+        
+        .suffix {
+            font-family: -apple-system, sans-serif; /* 表情符号保持系统字体，防止变形 */
+            font-size: 20px;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        /* 5. 署名样式 (手写体 + 淡雅 + 斜体) */
+        .signature {
+            font-family: "Ma Shan Zheng", cursive; /* 启用手写字体 */
+            margin-top: 50px;
+            font-size: 22px; /* 签名稍微放大 */
+            
+            /* 淡雅灰色 */
+            color: rgba(0, 0, 0, 0.5); 
+            
+            /* 斜体 */
+            font-style: italic;
+            
+            text-align: right;
+            padding-right: 15px;
+        }
+
     </style>
 </head>
 <body>
 
+    <div class="flower-field"></div>
+
     <div class="container">
-        <div class="content">
-            <div>希望你一切都好，</div>
-            <div>希望你万事顺意，</div>
-            <div>希望你天天开心！</div>
+        <div class="glass-card">
+            
+            <div class="content">
+                <span class="bracket">「</span>希望你一切都好<br>
+                &nbsp;&nbsp;希望你万事顺意<br>
+                &nbsp;&nbsp;希望你天天开心！<span class="bracket">」</span><span class="suffix">^^</span>
+            </div>
             
             <div class="signature">
-                ——Wu yiping
+                ——— 伍熠平
             </div>
+
         </div>
     </div>
 
